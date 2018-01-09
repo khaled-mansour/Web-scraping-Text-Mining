@@ -88,3 +88,45 @@ for(i in seq_along(steps)){
 # Process our results
 Parisiens <- unlist(Parisiens)
 Parisiens
+
+### Extracting restaurant-specific data
+ua <- "Mozilla/5.0 (Windows; Windows NT 6.1; rv:2.0b2) Gecko/20100720 Firefox/4.0b2"
+### Collecting the restaurant web page links ####
+ParisiensReviews <- list()
+ParisiensRatings <- list()
+"https://www.yelp.com/", 
+# Randomize the order in which we go through the list to appear less 'robotic'
+ParisiensLinks <- sample(Parisiens)[1:10]
+for(i in seq_along(business$url)){
+  
+  url <- paste0(business$url[i])
+  
+  # We use GET and read_html to download and process the website
+  webpage <- GET(url[1], 
+                 config = add_headers(user_header = ua, 
+                                      Accept_Language = 'en-US', 
+                                      Accept_Encoding = "gzip, deflate, sdch, br",
+                                      Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"))
+  content <- read_html(webpage)
+  
+  ## Get the reviews
+  # We get this information from using 'Inspect element' in the browser to look at the html code
+  # behind the web page
+  xml_node_review <- html_nodes(content, xpath = "//*[@class = 'review-content']/p")
+  restaurant_reviews <- html_text(xml_node_review)
+  ParisiensReviews[[i]] <- restaurant_reviews
+  ## Get the rating
+  # This is a bit tricky, since the rating is displayed as an image
+  # We can get the rating as part of the alt text of the image
+  xml_node_rating <- html_nodes(content, xpath = "//*[@class = 'biz-rating biz-rating-large clearfix']//*[contains(./@alt,'rating')]/@alt")
+  restaurant_rating <- html_text(xml_node_rating)
+  ParisiensRatings[[i]] <- restaurant_rating
+  
+  # Pause for a second to not overuse the Yelp server (and get blocked)
+  Sys.sleep(1)
+}
+
+# Let's look at the fruits of our labor! 
+ParisiensRatings[[1]]
+ParisiensReviews[[1]]
+
