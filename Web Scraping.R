@@ -47,7 +47,7 @@ reviews$reviews
 
 # This gives us only a snippet of one review, not much to go on for text mining...
 
-############ Part 2 : Web scraping with crawler ################
+############ Part 2 : Web scraping with R crawler ################
 library(rvest)
 
 ua <- "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.75.14 (KHTML, like Gecko) Version/7.0.3 Safari/7046A194A"
@@ -94,12 +94,9 @@ ua <- "Mozilla/5.0 (Windows; Windows NT 6.1; rv:2.0b2) Gecko/20100720 Firefox/4.
 ### Collecting the restaurant web page links ####
 ParisiensReviews <- list()
 ParisiensRatings <- list()
-"https://www.yelp.com/", 
-# Randomize the order in which we go through the list to appear less 'robotic'
-ParisiensLinks <- sample(Parisiens)[1:10]
-for(i in seq_along(business$url)){
+for(i in seq_along(Parisiens)){
   
-  url <- paste0(business$url[i])
+  url <- paste0("https://www.yelp.com/", Parisiens[i])
   
   # We use GET and read_html to download and process the website
   webpage <- GET(url[1], 
@@ -126,7 +123,7 @@ for(i in seq_along(business$url)){
   Sys.sleep(1)
 }
 
-# Let's look at the fruits of our labor! 
+# Let's look at the first restaurant link ratings and reviews:
 ParisiensRatings[[1]]
 ParisiensReviews[[1]]
 
