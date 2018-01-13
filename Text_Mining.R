@@ -1,7 +1,4 @@
 ################ Part 3 : Text Mining #################
-#on continue à travailler avec les données de Yelp, en particulier avec les données que Yelp a partagées dans le cadre d'un concours de recherche. 
-#Les données ont été téléchargées depuis https://www.yelp.de/dataset_challenge au format json.
-#on va traiter seulement un sous-ensemble, car l'ensemble des données est énorme.
 # Puisque les données sont sauvegardées sous JSON format , on va utiliser le package "jsonlite" encore une fois.
 library(jsonlite)
 # On va utlisier la commande stream_in() au lieu de fromJSON() pour lire les données.
@@ -20,10 +17,6 @@ library(tm)
 reviews_source <- VectorSource(reviews$text)
 # Après avoir identifier notre vecteur comme source, on peut lire les "reviews" dans un corpus qui contient le text pour chaque document
 corpus <- VCorpus(reviews_source)
-
-# Notre objectif maintenant c'est de diviser les texts en petits morceaus sur ce qu'on appelle "tokens" ou jetons.
-# mots ou termes, et comptez combien de fois ceux-ci apparaissent dans chaque document.
-#Puisque des mots très similaires se présentent sous différentes formes, par ex. Pizza / Pizza / Pizzas / Pizza !
 #on va standardiser les éléments de texte avant de compter.
 install.packages("SnowballC")
 library(SnowballC)
@@ -32,7 +25,7 @@ library(SnowballC)
 corpus <- tm_map(corpus, content_transformer(tolower))
 # Supprimer tous les caractères de ponctuation
 replaceCharacter <- content_transformer(function(x, pattern, replacement)
-    gsub(pattern = pattern,replacement = replacement, x))
+  gsub(pattern = pattern,replacement = replacement, x))
 corpus <- tm_map(corpus, replaceCharacter, "-", "")
 corpus <- tm_map(corpus, replaceCharacter, "[[:punct:]]", " ")
 # Ici on a pris la décision de séparer "pizza-place" à "pizza" et "place" mais en par contre "wouldn't" devient "wouldnt"
@@ -51,10 +44,6 @@ corpus <- tm_map(corpus, stemDocument, "english")
 corpus[[1]]$content
 
 ## Donner une structure à des données non structurées
-
-#Dans un format de table, les colonnes sont toutes des termes qui apparaissent dans n'importe quel document, les lignes sont remplies par la fréquence à laquelle chaque terme apparaît dans chacun des documents (et inversement pour la matrice document-terme).
-
-```{r}
 # Nous pouvons maintenant calculer la matrice du terme de document
 # Pendant le processus, nous ignorons les termes qui se produisent dans moins de cinq avis
 # parce que nous nous attendons à ce qu'ils ne soient pertinents que pour un petit nombre d'observations
@@ -64,7 +53,6 @@ corpus <- tm_map(corpus,content_transformer(removePunctuation))
 dtm <- DocumentTermMatrix(corpus)
 ## on peut visualiser les mots les plus fréquents qui ont été utilisés au moins 100 fois
 findFreqTerms(dtm, lowfreq = 200, highfreq = Inf)
-
 # on peut additionner la fréquence des termes sur tous les documents
 # et jetez un oeil aux termes les plus fréquents
 head(sort(colSums(as.matrix(dtm)), decreasing = TRUE), 20)
@@ -72,29 +60,19 @@ freq <- as.data.frame(head(sort(colSums(as.matrix(dtm)), decreasing = TRUE), 20)
 library(xlsx)
 write.xlsx(freq, "frequency.xlsx")
 saveRDS(dtm, "yelp_dtm.rds")
-
-# Nous n'avons pas besoin de restreindre l'analyse à des 'mots' uniques
-# Calculer des n-grammes, c'est-à-dire des termes avec plus d'un jeton
-# Le coeur de cette fonction est la fonction ngrams, qui déplace un n-sized
-# filtre sur le document et sort les mots qui apparaissent ensemble
+# La fonction ngrams déplace un n-sized ,filtre sur le document et sort les mots qui apparaissent ensemble
 # Cette définition de la fonction provient de la documentation de tm
 # elle combine la liste des ngrams de ngrams () et les mots simples
-
 BigramTokenizer <-  function(x){
-  wordVec <- words(x)
-  bigramVec <- unlist(lapply(ngrams(wordVec, 2), paste, collapse = " "), use.names = FALSE)
-  return(c(wordVec, bigramVec))
+wordVec <- words(x)
+bigramVec <- unlist(lapply(ngrams(wordVec, 2), paste, collapse = " "), use.names = FALSE)
+return(c(wordVec, bigramVec))
 }
-
 # on va l'appliquer lors de la construction de la matrice de termes de document via l'option 'tokenize'.
-# Cette fois, nous appliquerons également une pondération de «fréquence de document inverse» au
-# matrice de fréquence des mots. En multipliant la fréquence dans le document par son total inverse
-# ratio de fréquence, nous mettons plus de poids sur des termes qui ne sont pas très communs. Intuitivement,
-# les termes courants ne nous donnent pas beaucoup d'informations sur un document
 
 tfIdf <- DocumentTermMatrix(corpus, control = list(bounds = list(global = c(8, Inf)),
-                                                tokenize = BigramTokenizer,
-                                                weighting = function(x) weightTfIdf(x, normalize = TRUE)))
+                                                   tokenize = BigramTokenizer,
+                                                   weighting = function(x) weightTfIdf(x, normalize = TRUE)))
 
 # on reçoit un message d'avertissement indiquant qu'un document semble vide
 corpus[[1537]]$content
@@ -114,9 +92,6 @@ dim(tfIdf)
 tfIdf<- removeSparseTerms(tfIdf, sparse = 0.98)
 dim(tfIdf)
 
-# To see if some 2-grams have made it through the selection
-# process, since they are by definition rarer than their single word
-# counterparts, we use grep to search the terms for a space " "
 # Pour voir si quelques 2-grams ont réussi le processus de sélection
 # puisqu'ils sont par définition plus rares que leur seul mot
 # homologues, on utilise grep pour rechercher les termes d'un espace ""
@@ -162,23 +137,27 @@ head(wordTable, 10)
 
 # Maintenant, on fait un autre nuage pour les commentaires positifs seulement
 wordcloud(wordTable$words, wordTable$frequencyGood, max.words = 50)
+# Maintenant, on fait un autre nuage pour les commentaires négatifs seulement
 wordcloud(wordTable$words, wordTable$frequencyBad, max.words = 50)
+head(wordTable)
+# Pour rendre les nuages agréables, nous pouvons ajouter des couleurs dégradées en utilisant le package RColorBrewer
+install.packages("RColorBrewer")
+library(RColorBrewer)
+# on veut une gamme de couleurs, une palette, dans une teinte qui signifie l'aspect positif ou négatif de la critique
+greenPalette <- brewer.pal(n = 9, "Greens") # Pour ces palettes, le max est 9
+redPalette <- brewer.pal(n = 9, "Reds")
+
+# et on fait le plot comme avant.
+wordcloud(wordTable$words, wordTable$frequencyGood, max.words = 60, colors = greenPalette, scale = c(1.5,0.5))
+wordcloud(wordTable$words, wordTable$frequencyBad, max.words = 60, colors = redPalette, scale = c(1.5,0.5))
 
 # Certains mots sont intéressants, d'autres apparaissent dans les deux
 # Ce serait encore plus utile si on peut voir les mots qui sont fréquents dans les bonnes critiques mais rares dans les mauvaises critiques
 # on peut le faire en divisant les chiffres par la fréquence globale des mots
 
-head(wordTable)
 wordTable[, c("frequencyBad", "frequencyNeutral", "frequencyGood")] <- lapply(wordTable[, c("frequencyBad", "frequencyNeutral", "frequencyGood")], 
                                                                               function(x) x/wordTable$frequency)
 head(wordTable)
-
-# Pour rendre les nuages agréables, nous pouvons ajouter des couleurs dégradées en utilisant le package RColorBrewer
-install.packages("RColorBrewer")
-library(RColorBrewer)
-# on veut une gamme de couleurs, une palette, dans une teinte qui signifie l'aspect positif ou négatif de la critique
-greenPalette <- brewer.pal(n = 9, "Greens") # For ces palettes, le max est 9
-redPalette <- brewer.pal(n = 9, "Reds")
 
 # et on fait le plot comme avant.
 wordcloud(wordTable$words, wordTable$frequencyGood, max.words = 60, colors = greenPalette, scale = c(1.5,0.5))
@@ -189,4 +168,4 @@ wordcloud(wordTable$words, wordTable$frequencyBad, max.words = 60, colors = redP
 # Les tracés de fonction basés sur un bloc de données où les mots sont row.names et les classes column.names
 
 comparisonTable <- data.frame(wordTable[, c("frequencyGood", "frequencyNeutral","frequencyBad")], row.names = wordTable$words)
-comparison.cloud(comparisonTable, max.words = 300, colors=c("darkgreen", "blue","red"), title.size = 1, random.order = FALSE, scale = c(1.5, 0.4))
+comparison.cloud(comparisonTable, max.words = 5000, colors=c("darkgreen", "blue","red"),random.order = FALSE, scale = c(1.5, .4))
