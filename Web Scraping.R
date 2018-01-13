@@ -91,7 +91,6 @@ Parisiens
 
 ### Extracting restaurant-specific data
 ua <- "Mozilla/5.0 (Windows; Windows NT 6.1; rv:2.0b2) Gecko/20100720 Firefox/4.0b2"
-### Collecting the restaurant web page links ####
 ParisiensReviews <- list()
 ParisiensRatings <- list()
 for(i in seq_along(Parisiens)){
