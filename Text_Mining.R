@@ -51,15 +51,8 @@ corpus <- tm_map(corpus, stemDocument, "english")
 corpus[[1]]$content
 
 ## Donner une structure à des données non structurées
-```
-Le texte est un exemple typique de * données non structurées *. 
-Le texte a généralement aussi beaucoup de structure comme les livres, les chapitres, les paragraphes, l'ordre des mots, la grammaire, les définitions de mots et le contexte sémantique implicite et explicite. 
-Cependant, ces structures ne correspondent pas au format de tableau de colonnes d'observation requis pour les méthodes d'apprentissage automatique.
-Le but de cet exercice est donc de prendre un corpus de texte et de le mapper à une structure de données qui s'intègre dans les modèles standards. 
-Le format le plus commun pour cela est la * matrice de document-terme *, qui extrait de la structure de texte réelle pour représenter chaque document (par exemple livre, revue, tweet, ...) par ses comptes de mots.
-L'ordre des mots est négligé comme si les mots étaient tirés d'un * bag-of-words *.
 
-Dans un format de table, les colonnes sont toutes des termes qui apparaissent dans n'importe quel document, les lignes sont remplies par la fréquence à laquelle chaque terme apparaît dans chacun des documents (et inversement pour la matrice document-terme).
+#Dans un format de table, les colonnes sont toutes des termes qui apparaissent dans n'importe quel document, les lignes sont remplies par la fréquence à laquelle chaque terme apparaît dans chacun des documents (et inversement pour la matrice document-terme).
 
 ```{r}
 # Nous pouvons maintenant calculer la matrice du terme de document
@@ -75,7 +68,9 @@ findFreqTerms(dtm, lowfreq = 200, highfreq = Inf)
 # on peut additionner la fréquence des termes sur tous les documents
 # et jetez un oeil aux termes les plus fréquents
 head(sort(colSums(as.matrix(dtm)), decreasing = TRUE), 20)
-
+freq <- as.data.frame(head(sort(colSums(as.matrix(dtm)), decreasing = TRUE), 20))
+library(xlsx)
+write.xlsx(freq, "frequency.xlsx")
 saveRDS(dtm, "yelp_dtm.rds")
 
 # Nous n'avons pas besoin de restreindre l'analyse à des 'mots' uniques
