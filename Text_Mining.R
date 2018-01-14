@@ -85,8 +85,8 @@ head(tfIdf$dimnames$Terms, 50)
 # Suppression des termes les plus rares 1. augmente la vitesse de calcul et
 # 2. met l'accent sur les mots qui apparaîtront probablement dans les futurs "reviews"
 # La densité d'une matrice ou d'un vecteur mesure le pourcentage de
-# vide (0) entrées. Si nous voulons utiliser seulement les termes qui apparaissent dans
-# au moins 2% des commentaires (ici 40 commentaires sur 2000), nous devrions
+# vide (0) entrées. Si on veut utiliser seulement les termes qui apparaissent dans
+# au moins 2% des commentaires, on doit
 # définir le taux de "sparsity" maximal à 98%
 dim(tfIdf)
 tfIdf<- removeSparseTerms(tfIdf, sparse = 0.98)
