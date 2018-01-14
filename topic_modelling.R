@@ -20,7 +20,7 @@ topics(fit)[1:10]
 ldaOut.topics <- as.matrix(topics(fit))
 table2 <- as.data.frame(terms(fit, 10))
 library(xlsx)
-write.xlsx(topics, "topics.xlsx")
+write.xlsx(table2, "topics.xlsx")
 
 ## Fonctionnalité supplémentaire
 # Il y a deux paquets supplémentaires qui fournissent des fonctions auxiliaires pratiques. ** Ldatuning ** nous aide à trouver un bon nombre de sujets pour décrire les données. ** LDAvis ** fournit une interface dynamique pour explorer les sujets.
