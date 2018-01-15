@@ -1,16 +1,9 @@
 # Sentiment analysis
-#L'analyse de sentiment décrit une application de l'exploration de texte où l'objectif est d'extraire une opinion positive ou négative ou une émotion du texte. C'est un outil utile, par exemple, pour agréger les opinions des clients à partir d'un grand nombre de critiques, classer les messages des utilisateurs en éloges et plaintes, ou jauger l'opinion publique sur un produit ou un sujet politique via Twitter.
-#Nous comparerons le sentiment que nous recueillons de chaque critique à son classement par étoiles. Un problème avec les données de notation, dans ce cas sur une échelle de 1 à 5, est que 1) il n'y a aucune garantie que les gens appliquent les mêmes normes ou même juger les mêmes critères lors de l'évaluation, et 2) les évaluations tendent à être 1 , 4 et 5 étoiles critiques avec le gros sur ce dernier. Pour résoudre le problème de déséquilibre, nous regroupons les revues 1,2 et 3 étoiles.
-
-# Lire dans les avis textes et notes
-# Nous avons besoin des évaluations pour construire un modèle prédictif
-# et les textes des critiques pour analyser notre correcte
-# et prédictions incorrectes
 
 library(jsonlite)
 connection_reviews <- file("./reviews.txt")
 reviews <- stream_in(connection_reviews)
-# Extract the rating stars
+# Extraire les étoiles de notations
 ratings <- reviews$stars
 reviews <- reviews$text
 
@@ -24,7 +17,6 @@ ratings2 <- cut(ratings, breaks = c(0, 3, 4, 5), labels = c("<3Stars", "4Stars",
 table(ratings2)
 
 ## Machine learning avec matrice document-term 
-#Si nous traitons les nombres (pondérés) dans la matrice document-terme ou la matrice fréquence-document-inversé-fréquence-fréquence comme table de prédicteurs, nous pouvons utiliser tous les modèles de prédiction standard pour estimer la note donnée au nombre de mots. Naturellement, le nombre de variables / mots va augmenter très rapidement pour un grand corpus, donc des techniques de réduction de dimension comme l'analyse en composantes principales ou l'allocation de Dirichlet latente peuvent être nécessaires dans ces cas.
 
 # Chargez la matrice tf-idf que nous avons calculée auparavant
 library(tm)
@@ -43,11 +35,6 @@ trainIdx <- createDataPartition(ratings2, p = 0.6, list = FALSE)
 head(trainIdx)
 
 ### Modèle de prédiction
-# Nous utiliserons un algorithme très populaire appelé 'forêt aléatoire' pour prédire
-# les notes basées sur les mots de la revue. Pour parler simplement, c'est un
-# combinaison d'arbres de décision, qui classent les données dans un ensemble de
-# règles de décision binaires
-
 #Regardons l'arbre de décision pour avoir une intuition
 library(rpart)
 library(rpart.plot)
@@ -57,12 +44,11 @@ rpart.plot(dt_fit)
 dt_pred_ts <- predict(dt_fit , newdata = tfIdf[-trainIdx, ], type = "class")
 confusionMatrix(dt_pred_ts, reference = ratings2[-trainIdx])$table
 
-# La forêt aléatoire combine beaucoup de ces arbres qui votent ensuite sur le
-# classification finale
+#Random Forest
 library(randomForest)
-rf_fit <- randomForest(y = ratings2[trainIdx], x = tfIdf[trainIdx, ], # training data
-                       ntree = 400, nodesize = 5, # Size of the forest and trees
-                       mtry = 25, sampsize = c(100, 100, 100)) # Randomization
+rf_fit <- randomForest(y = ratings2[trainIdx], x = tfIdf[trainIdx, ],
+                       ntree = 400, nodesize = 5, 
+                       mtry = 25, sampsize = c(100, 100, 100)) 
 
 # Le modèle de forêt aléatoire est moins interprétable qu'un arbre de décision unique
 # mais nous pouvons obtenir un score d'importance pour chaque variable / mot
@@ -73,18 +59,17 @@ varImpPlot(rf_fit, n.var = 20)
 pred <- predict(rf_fit, newdata = tfIdf)
 pred.prob <- predict(rf_fit, newdata = tfIdf, type = "prob")
 
-# Vérifiez les performances de notre modèle
-# Pour cette vérification, nous utilisons uniquement les observations
+# Pour vérifier la performance de ce modèle, nous utilisons uniquement les observations
 # nous n'avons pas utilisé pour former la forêt aléatoire
 
-# Notez que nous pourrions atteindre une précision d'environ 0,3 par
+# nous pourrions atteindre une précision d'environ 0,3 par
 # assigner les groupes au hasard, donc 0,3 pourrait être un
-# benchmark simple pour comparer le modèle à
+# benchmark simple pour comparer le modèle 
 confusionMatrix(pred[-trainIdx], ratings2[-trainIdx])
 
 # Le modèle semble assez bon pour prédire les très bons restaurants
-# quels sont les endroits que nous voulons recommander! Regardons les cas
-# où il met des endroits merdiques dans la catégorie génial.
+# Ce sont les endroits que nous voulons recommander! Regardons les cas
+# où il met des mauvais endroits dans la catégorie génial.
 bad2goodIdx <- which(pred == "5Stars" & ratings2 == "<3Stars")[-trainIdx]
 bad2goodIdx
 # Regardons les 5 premières notes des restaurants
@@ -94,16 +79,8 @@ ratings[bad2goodIdx[9:13]]
 reviews[bad2goodIdx[9:13]]
 # Un gros problème sont les phrases sans beaucoup de mots d'indication clairs pour les modèles "bag of words"
 # et fautes de frappe pour l'exploration de texte en général
-##### on peut s'arreter ici  #####
 
 ## Vérification des mots dans un lexique d'opinion
-
-#Une façon naïve mais générale d'extraire le sentiment du texte est de juger chaque mot sur sa connotation. Cette approche est abstraite du contexte du texte et des mots, mais une fois qu'un dictionnaire de paires mot-sentiment est construit, il peut facilement être appliqué à de nouveaux textes.
-#Le package ** tidytext ** contient trois de ces dictionnaires.
-# reference
-#https://cran.r-project.org/web/packages/tidytext/vignettes/tidytext.html
-#http://begriffs.com/posts/2015-02-25-text-mining-in-r.html
-#http://varianceexplained.org/r/yelp-sentiment/
 
 install.packages("tidytext")
 library(tidytext)
@@ -114,7 +91,8 @@ head(sentiments[sentiments$lexicon == "AFINN",], 10)
 # Recueillir les mots et les scores du lexique AFINN
 lexicon <- sentiments[sentiments$lexicon == "AFINN", c("word", "score")]
 
-#Les mots du dictionnaire ne sont pas tronqués, donc nous pouvons soit étouffer le dictionnaire, soit ne pas endiguer nos critiques. Faisons le dernier. Nous faisons le même corpus que précédemment, mais cette fois, nous le transformons en un bloc de données contenant le mot, le numéro de document et le sentiment.
+#Les mots du dictionnaire ne sont pas tronqués, donc on doit ne pas tronquer nos critiques.
+#Nous faisons le même corpus que précédemment, mais cette fois, nous le transformons en un bloc de données contenant le mot, le numéro de document et le sentiment.
 library(tm)
 # Transformez les "reviews" en un corpus
 reviews_source <- VectorSource(reviews)
@@ -124,7 +102,7 @@ str(corpus[[1]])
 # Meme Transformation comme auparavant
 corpus <- tm_map(corpus, content_transformer(tolower))
 replaceCharacter <- content_transformer(function(x, pattern, replacement)
-    gsub(pattern = pattern,replacement = replacement, x))
+  gsub(pattern = pattern,replacement = replacement, x))
 corpus <- tm_map(corpus, replaceCharacter, "'", "")
 corpus <- tm_map(corpus, replaceCharacter, "[[:punct:]]", " ")
 corpus <- tm_map(corpus, removeWords, stopwords("english"))
@@ -157,24 +135,22 @@ sample(documents$word[is.na(documents$score)], 25)
 # Les mots manquants sont difficiles à juger sur leur valeur de sentiment,
 # donc nous allons simplement accepter cette restriction
 
-# Calculer le sentiment global par revue
+# Calcule du sentiment global par revue
 # Nous calculons le sentiment moyen pour les mots disponibles
 # pour chaque document séparément
 sentiment_scores <- tapply(documents$score, factor(documents$document), function(x) sum(x, na.rm = TRUE) / max(1, sum(!is.na(x))) )
 sentiment_scores[7:8]
 reviews[7:8]
 
-# Nous pouvons analyser les sentiments plus statistiquement en traçant la distribution de
-# les scores de sentiment en boxplots pour chaque classement d'étoiles
+# la distribution de des scores de sentiment en boxplots pour chaque classement d'étoiles
 boxplot(sentiment_scores ~ ratings, data = data.frame(ratings, sentiment_scores), xlab = "Star rating", ylab = "Sentiment score")
 
 # Nous pouvons comparer cela au modèle de forêt aléatoire basé sur tous les mots (communs)
 sentiment_categories <- cut(sentiment_scores, breaks = quantile(sentiment_scores, seq(0, 1, 1/3)), labels = c("<3Stars", "4Stars", "5Stars"))
 confusionMatrix(sentiment_categories[-trainIdx], ratings2[-trainIdx])
-# La forêt aléatoire a une précision globale de 0,54. Naturellement, nous pourrions combiner le mot brut
-# et les données de sentiment et le nourrir dans la forêt aléatoire.
+# La forêt aléatoire a une précision globale de 0,54.
 
 # Pour voir pourquoi nous échouons sur certaines critiques, regardons les commentaires avec un
 # mauvais sentiment mais une note élevée
-head(reviews[sentiment_scores < -1.5 & ratings == 5], 8)
+head(reviews[sentiment_scores < -1.5 & ratings == 5], 10)
 ## Pour le dictionnaire anglais, l'allemand se lit comme expression en colère et donne alors un mauvais sentiment !
