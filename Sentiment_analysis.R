@@ -1,4 +1,4 @@
-# Sentiment analysis
+####################### Part 5: sentiment analysis and predictive model ########################
 
 library(jsonlite)
 connection_reviews <- file("./reviews.txt")
